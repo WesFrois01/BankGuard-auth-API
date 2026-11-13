@@ -34,3 +34,9 @@
 /workspaces/BankGuard-auth-API/obj/Debug/net10.0/BankGuard-auth-API.pdb
 /workspaces/BankGuard-auth-API/obj/Debug/net10.0/BankGuard-auth-API.genruntimeconfig.cache
 /workspaces/BankGuard-auth-API/obj/Debug/net10.0/ref/BankGuard-auth-API.dll
+/workspaces/BankGuard-auth-API/bin/Debug/net10.0/Microsoft.Bcl.Cryptography.dll
+/workspaces/BankGuard-auth-API/bin/Debug/net10.0/Microsoft.IdentityModel.Abstractions.dll
+/workspaces/BankGuard-auth-API/bin/Debug/net10.0/Microsoft.IdentityModel.JsonWebTokens.dll
+/workspaces/BankGuard-auth-API/bin/Debug/net10.0/Microsoft.IdentityModel.Logging.dll
+/workspaces/BankGuard-auth-API/bin/Debug/net10.0/Microsoft.IdentityModel.Tokens.dll
+/workspaces/BankGuard-auth-API/bin/Debug/net10.0/System.IdentityModel.Tokens.Jwt.dll
