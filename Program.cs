@@ -63,6 +63,13 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+// Aplica migrations automaticamente na inicialização (ideal para containers Docker)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
+
 app.UseExceptionHandler();
 app.UseRateLimiter();
 
