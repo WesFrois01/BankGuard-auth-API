@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="BankGuard-auth-API.csproj" />
+  <Project Path="BankGuard.Tests/BankGuard.Tests.csproj" />
+</Solution>

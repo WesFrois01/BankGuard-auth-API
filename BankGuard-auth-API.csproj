@@ -19,5 +19,9 @@
     <PackageReference Include="Scalar.AspNetCore" Version="2.21.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.23.0" />
   </ItemGroup>
-
+  <ItemGroup>
+    <Compile Remove="BankGuard.Tests/**" />
+    <EmbeddedResource Remove="BankGuard.Tests/**" />
+    <None Remove="BankGuard.Tests/**" />
+  </ItemGroup>
 </Project>
