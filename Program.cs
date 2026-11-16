@@ -1,33 +1,46 @@
+using System.Text;
+using BankGuard_Auth_API.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddScoped<TokenService>();
 
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
+var jwtKey = builder.Configuration["Jwt:Key"] 
+    ?? throw new InvalidOperationException("Jwt:Key nao configurada.");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            ValidateIssuer = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidateAudience = true,
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            ClockSkew = TimeSpan.Zero
+        };
     });
-});
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-app.UseCors();
-
-app.MapOpenApi();
-app.MapScalarApiReference(options =>
+if (app.Environment.IsDevelopment())
 {
-    options.Servers = [new ScalarServer("/")];
-});
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
 
+app.UseAuthentication();
 app.UseAuthorization();
-app.MapControllers();
 
-app.MapGet("/", () => Results.Redirect("/scalar/v1"));
+app.MapControllers();
 
 app.Run();

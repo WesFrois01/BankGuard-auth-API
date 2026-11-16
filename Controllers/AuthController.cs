@@ -10,50 +10,67 @@ namespace BankGuard_Auth_API.Controllers;
 public class AuthController : ControllerBase
 {
     public static readonly List<User> Users = new();
-    private readonly TokenService _tokenService = new();
+    private readonly TokenService _tokenService;
+
+    public AuthController(TokenService tokenService)
+    {
+        _tokenService = tokenService;
+    }
 
     [HttpPost("register")]
     public IActionResult Register([FromBody] RegisterRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Email) || request.Password.Length < 8)
-            return BadRequest(new { message = "E-mail inválido ou senha com menos de 8 caracteres." });
+        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
+        {
+            return BadRequest(new { message = "Email e senha sao obrigatorios." });
+        }
+
+        if (request.Password.Length < 8)
+        {
+            return BadRequest(new { message = "A senha deve ter no minimo 8 caracteres." });
+        }
 
         if (Users.Any(u => u.Email.Equals(request.Email, StringComparison.OrdinalIgnoreCase)))
-            return Conflict(new { message = "Este e-mail já está cadastrado." });
+        {
+            return Conflict(new { message = "Este email ja esta cadastrado." });
+        }
 
-        string passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
-
-        var newUser = new User
+        var user = new User
         {
             FullName = request.FullName,
-            Email = request.Email,
-            PasswordHash = passwordHash
+            Email = request.Email.Trim().ToLowerInvariant(),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            Balance = 1000.00m
         };
 
-        Users.Add(newUser);
+        Users.Add(user);
 
-        var response = new UserResponse(newUser.Id, newUser.FullName, newUser.Email, newUser.Balance);
-
-        return Created("", new
+        return Ok(new
         {
-            message = "Conta criada com segurança!",
-            user = response,
-            hashGerado = passwordHash
+            message = "Conta criada com sucesso!",
+            userId = user.Id,
+            initialBalance = user.Balance
         });
     }
 
     [HttpPost("login")]
     public IActionResult Login([FromBody] LoginRequest request)
     {
-        var user = Users.FirstOrDefault(u => u.Email.Equals(request.Email, StringComparison.OrdinalIgnoreCase));
+        var user = Users.FirstOrDefault(u =>
+            u.Email.Equals(request.Email.Trim(), StringComparison.OrdinalIgnoreCase));
 
-        if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-            return Unauthorized(new { message = "Credenciais inválidas." });
+        if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        {
+            return Unauthorized(new { message = "Credenciais invalidas." });
+        }
 
-        var (token, expiresAt) = _tokenService.GenerateToken(user);
+        var token = _tokenService.GenerateToken(user);
 
-        var userResponse = new UserResponse(user.Id, user.FullName, user.Email, user.Balance);
-
-        return Ok(new LoginResponse(token, expiresAt, userResponse));
+        return Ok(new
+        {
+            message = "Login realizado com sucesso!",
+            token,
+            expiresInMinutes = 30
+        });
     }
 }

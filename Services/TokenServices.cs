@@ -8,31 +8,36 @@ namespace BankGuard_Auth_API.Services;
 
 public class TokenService
 {
-    public const string SecretKey = "BankGuard_SuperSecret_SigningKey_2026_Minimum32Chars!";
+    private readonly IConfiguration _configuration;
 
-    public (string token, DateTime expiresAt) GenerateToken(User user)
+    public TokenService(IConfiguration configuration)
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(SecretKey));
+        _configuration = configuration;
+    }
+
+    public string GenerateToken(User user)
+    {
+        var secretKey = _configuration["Jwt:Key"] 
+            ?? throw new InvalidOperationException("Jwt:Key nao configurada.");
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim("fullName", user.FullName),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
-        var expiresAt = DateTime.UtcNow.AddMinutes(30);
-
         var token = new JwtSecurityToken(
-            issuer: "BankGuard.Auth.API",
-            audience: "BankGuard.Clients",
+            issuer: _configuration["Jwt:Issuer"],
+            audience: _configuration["Jwt:Audience"],
             claims: claims,
-            expires: expiresAt,
+            expires: DateTime.UtcNow.AddMinutes(30),
             signingCredentials: credentials
         );
 
-        return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 }
