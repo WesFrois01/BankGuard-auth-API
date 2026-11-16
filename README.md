@@ -1,48 +1,36 @@
-# 🛡️ BankGuard Auth API
- 
-API RESTful de autenticação bancária e movimentação financeira segura desenvolvida em **.NET 10**, projetada com foco em boas práticas de **Segurança da Informação (AppSec)**, rastreabilidade e arquitetura limpa.
- 
+# BankGuard Auth & Transactions API
+
+API RESTful de autenticação, transferência financeira atômica e trilha de auditoria construída em **.NET 10 (ASP.NET Core)**. Desenvolvida com foco em arquitetura em camadas, segurança, resiliência e prontidão para deploy em containers.
+
 ---
- 
-## 🚀 Arquitetura e Recursos de Segurança
- 
-- **Hashing Criptográfico de Senhas (`BCrypt.Net-Next`)**: Armazenamento seguro de credenciais com *salt* automático, prevenindo ataques de *rainbow table* e força bruta.
-- **Autenticação Stateless via JWT (`HMAC-SHA256`)**: Emissão de tokens assinados digitalmente com expiração curta (30 minutos) e validação rigorosa de *Issuer*, *Audience* e *Lifetime*.
-- **Prevenção contra Enumeração de Contas**: Respostas padronizadas (`401 Unauthorized`) em falhas de login para não expor e-mails cadastrados na base.
-- **Prevenção contra IDOR / Fraude de Identidade**: A identificação do remetente em transferências é extraída exclusivamente da *claim* `sub` do Token JWT autenticado, ignorando identificadores manipuláveis no corpo da requisição.
-- **Trilha de Auditoria Imutável (`AuditLogs`)**: Registo detalhado com identificador único (GUID) e carimbo de tempo UTC para todas as operações aprovadas (`SUCCESS`) e tentativas bloqueadas (`BLOCKED` por saldo insuficiente ou destinatário inválido).
-- **Documentação Interativa**: Interface OpenAPI integrada com **Scalar**.
- 
+
+## Principais Recursos e Arquitetura
+
+* **Arquitetura em Camadas:** Separação clara entre *Controllers* (roteamento HTTP), *Services* (regras de negócio isoladas por interfaces `IAuthService` e `ITransactionService`), *DTOs* e camada de persistência (*Data/Models*).
+* **Autenticação e Autorização Stateless (JWT):** Emissão e validação de tokens JWT Bearer com `ClockSkew = TimeSpan.Zero` e hash seguro de senhas com **BCrypt**.
+* **Integridade Financeira (ACID):** Operações de transferência executadas dentro de transações explícitas do Entity Framework Core (`BeginTransactionAsync`), garantindo atomicidade entre débito, crédito e registro de auditoria (`AuditLogs`).
+* **Observabilidade e Auditoria:** Endpoint paginado e filtrável (`GET /api/transactions/audit`) registrando tentativas bem-sucedidas (`SUCCESS`) e bloqueadas (`BLOCKED`).
+* **Resiliência e Segurança:**
+  * Tratamento global de exceções implementado com `IExceptionHandler` retornando respostas padronizadas **RFC 7807 (`ProblemDetails`)**.
+  * Proteção contra ataques de força bruta no endpoint de login via **Rate Limiting** nativo (`FixedWindowLimiter` — 5 requisições/minuto, HTTP `429`).
+* **Testes Automatizados:** Suite de testes unitários com **xUnit** e **EF Core In-Memory** validando regras críticas de negócio.
+* **Containerização:** Build multi-stage com Docker (`sdk:10.0` + `aspnet:10.0` rodando como usuário não-root) e orquestração via `docker-compose` com persistência de dados em volume.
+
 ---
- 
-## 🛠️ Tecnologias Utilizadas
- 
-- **C# / .NET 10 (ASP.NET Core Web API)**
-- **BCrypt.Net-Next**
-- **System.IdentityModel.Tokens.Jwt**
-- **Scalar.AspNetCore** (OpenAPI 3.1)
- 
+
+## Stack Tecnológica
+
+* **.NET 10** / ASP.NET Core Web API
+* **Entity Framework Core 10** + **SQLite**
+* **JWT Bearer Authentication** & **BCrypt.Net**
+* **Scalar** (Documentação interativa OpenAPI)
+* **xUnit** & **EF Core In-Memory**
+* **Docker** & **Docker Compose**
+
 ---
- 
-## 📌 Endpoints Principais
- 
-| Método | Rota | Autenticação | Descrição |
-| :--- | :--- | :---: | :--- |
-| `POST` | `/api/Auth/register` | Pública | Regista nova conta com hash BCrypt e saldo inicial |
-| `POST` | `/api/Auth/login` | Pública | Valida credenciais e emite Token JWT assinado |
-| `POST` | `/api/Transactions/transfer` | **JWT Bearer** | Executa transferência entre contas e gera log de auditoria |
-| `GET` | `/api/Transactions/audit` | **JWT Bearer** | Consulta o histórico imutável de auditoria financeira |
- 
----
- 
-## ▶️ Como Executar Localmente
- 
+
+## Como Executar
+
+### Opção 1: Via Docker Compose (Recomendado)
 ```bash
-# Clonar o repositório
-git clone [https://github.com/WesFrois01/BankGuard-auth-API.git](https://github.com/WesFrois01/BankGuard-auth-API.git)
-cd BankGuard-auth-API
- 
-# Restaurar dependências e iniciar a API
-dotnet restore
-dotnet run
- 
+docker compose up --build -d
