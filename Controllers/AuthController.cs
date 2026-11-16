@@ -1,7 +1,9 @@
+using BankGuard_Auth_API.Data;
 using BankGuard_Auth_API.DTOs;
 using BankGuard_Auth_API.Models;
 using BankGuard_Auth_API.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace BankGuard_Auth_API.Controllers;
 
@@ -9,16 +11,17 @@ namespace BankGuard_Auth_API.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    public static readonly List<User> Users = new();
+    private readonly AppDbContext _context;
     private readonly TokenService _tokenService;
 
-    public AuthController(TokenService tokenService)
+    public AuthController(AppDbContext context, TokenService tokenService)
     {
+        _context = context;
         _tokenService = tokenService;
     }
 
     [HttpPost("register")]
-    public IActionResult Register([FromBody] RegisterRequest request)
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
         {
@@ -30,7 +33,9 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = "A senha deve ter no minimo 8 caracteres." });
         }
 
-        if (Users.Any(u => u.Email.Equals(request.Email, StringComparison.OrdinalIgnoreCase)))
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+
+        if (await _context.Users.AnyAsync(u => u.Email == normalizedEmail))
         {
             return Conflict(new { message = "Este email ja esta cadastrado." });
         }
@@ -38,12 +43,13 @@ public class AuthController : ControllerBase
         var user = new User
         {
             FullName = request.FullName,
-            Email = request.Email.Trim().ToLowerInvariant(),
+            Email = normalizedEmail,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             Balance = 1000.00m
         };
 
-        Users.Add(user);
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
 
         return Ok(new
         {
@@ -54,10 +60,10 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public IActionResult Login([FromBody] LoginRequest request)
+    public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var user = Users.FirstOrDefault(u =>
-            u.Email.Equals(request.Email.Trim(), StringComparison.OrdinalIgnoreCase));
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
 
         if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {

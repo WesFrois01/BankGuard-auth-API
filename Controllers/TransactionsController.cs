@@ -1,9 +1,11 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using BankGuard_Auth_API.Data;
 using BankGuard_Auth_API.DTOs;
 using BankGuard_Auth_API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace BankGuard_Auth_API.Controllers;
 
@@ -12,10 +14,15 @@ namespace BankGuard_Auth_API.Controllers;
 [Authorize]
 public class TransactionsController : ControllerBase
 {
-    public static readonly List<AuditLog> AuditLogs = new();
+    private readonly AppDbContext _context;
+
+    public TransactionsController(AppDbContext context)
+    {
+        _context = context;
+    }
 
     [HttpPost("transfer")]
-    public IActionResult Transfer([FromBody] TransferRequest request)
+    public async Task<IActionResult> Transfer([FromBody] TransferRequest request)
     {
         var idClaim = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
                    ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -25,7 +32,7 @@ public class TransactionsController : ControllerBase
             return Unauthorized(new { message = "Token malformado." });
         }
 
-        var sender = AuthController.Users.FirstOrDefault(u => u.Id == senderId);
+        var sender = await _context.Users.FirstOrDefaultAsync(u => u.Id == senderId);
         if (sender == null)
         {
             return NotFound(new { message = "Conta de origem nao encontrada." });
@@ -36,8 +43,8 @@ public class TransactionsController : ControllerBase
             return BadRequest(new { message = "Valor deve ser maior que zero." });
         }
 
-        var recipient = AuthController.Users.FirstOrDefault(u =>
-            u.Email.Equals(request.RecipientEmail, StringComparison.OrdinalIgnoreCase));
+        var normalizedRecipientEmail = request.RecipientEmail.Trim().ToLowerInvariant();
+        var recipient = await _context.Users.FirstOrDefaultAsync(u => u.Email == normalizedRecipientEmail);
 
         if (recipient == null)
         {
@@ -45,12 +52,14 @@ public class TransactionsController : ControllerBase
             {
                 SenderId = sender.Id,
                 SenderEmail = sender.Email,
-                RecipientEmail = request.RecipientEmail,
+                RecipientEmail = normalizedRecipientEmail,
                 Amount = request.Amount,
                 Status = "BLOCKED",
                 Reason = "Destinatario inexistente"
             };
-            AuditLogs.Add(log);
+            _context.AuditLogs.Add(log);
+            await _context.SaveChangesAsync();
+
             return NotFound(new { message = "Destinatario nao encontrado.", auditId = log.Id });
         }
 
@@ -70,34 +79,54 @@ public class TransactionsController : ControllerBase
                 Status = "BLOCKED",
                 Reason = "Saldo insuficiente"
             };
-            AuditLogs.Add(log);
+            _context.AuditLogs.Add(log);
+            await _context.SaveChangesAsync();
+
             return BadRequest(new { message = "Saldo insuficiente.", auditId = log.Id });
         }
 
-        sender.Balance -= request.Amount;
-        recipient.Balance += request.Amount;
+        // Inicio da Transacao Atomica (ACID)
+        await using var transaction = await _context.Database.BeginTransactionAsync();
 
-        var okLog = new AuditLog
+        try
         {
-            SenderId = sender.Id,
-            SenderEmail = sender.Email,
-            RecipientEmail = recipient.Email,
-            Amount = request.Amount,
-            Status = "SUCCESS",
-            Reason = "Transferencia concluida"
-        };
-        AuditLogs.Add(okLog);
+            sender.Balance -= request.Amount;
+            recipient.Balance += request.Amount;
 
-        return Ok(new TransferResponse(
-            "Transferencia realizada com sucesso!",
-            sender.Balance,
-            okLog.Id
-        ));
+            var okLog = new AuditLog
+            {
+                SenderId = sender.Id,
+                SenderEmail = sender.Email,
+                RecipientEmail = recipient.Email,
+                Amount = request.Amount,
+                Status = "SUCCESS",
+                Reason = "Transferencia concluida"
+            };
+            _context.AuditLogs.Add(okLog);
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return Ok(new TransferResponse(
+                "Transferencia realizada com sucesso!",
+                sender.Balance,
+                okLog.Id
+            ));
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            return StatusCode(500, new { message = "Falha interna ao processar transferencia. Operacao revertida." });
+        }
     }
 
     [HttpGet("audit")]
-    public IActionResult GetAuditLogs()
+    public async Task<IActionResult> GetAuditLogs()
     {
-        return Ok(AuditLogs.OrderByDescending(l => l.TimestampUtc));
+        var logs = await _context.AuditLogs
+            .OrderByDescending(l => l.TimestampUtc)
+            .ToListAsync();
+
+        return Ok(logs);
     }
 }
