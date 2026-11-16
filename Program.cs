@@ -4,6 +4,7 @@ using BankGuard_Auth_API.Data;
 using BankGuard_Auth_API.Middleware;
 using BankGuard_Auth_API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -13,6 +14,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+
+// Configuração de Forwarded Headers (suporte a Proxy Reverso / GitHub Codespaces / Docker)
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 // Injeção de Dependência (Camada de Serviços)
 builder.Services.AddScoped<TokenService>();
@@ -62,6 +71,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+// Deve vir antes de qualquer outro middleware para reconhecer HTTPS e Host do proxy
+app.UseForwardedHeaders();
 
 // Aplica migrations automaticamente na inicialização (ideal para containers Docker)
 using (var scope = app.Services.CreateScope())
