@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BankGuard-auth-API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+446ba127184ec4b54d7f214098c6514a182e4b4a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f215ee62b2665e7f5389549cf8de4a1d815c8a1a")]
 [assembly: System.Reflection.AssemblyProductAttribute("BankGuard-auth-API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BankGuard-auth-API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

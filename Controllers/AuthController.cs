@@ -1,9 +1,6 @@
-using BankGuard_Auth_API.Data;
 using BankGuard_Auth_API.DTOs;
-using BankGuard_Auth_API.Models;
 using BankGuard_Auth_API.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace BankGuard_Auth_API.Controllers;
 
@@ -11,72 +8,32 @@ namespace BankGuard_Auth_API.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private readonly AppDbContext _context;
-    private readonly TokenService _tokenService;
+    private readonly IAuthService _authService;
 
-    public AuthController(AppDbContext context, TokenService tokenService)
+    public AuthController(IAuthService authService)
     {
-        _context = context;
-        _tokenService = tokenService;
+        _authService = authService;
     }
 
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
-        {
-            return BadRequest(new { message = "Email e senha sao obrigatorios." });
-        }
+        var result = await _authService.RegisterAsync(request);
 
-        if (request.Password.Length < 8)
-        {
-            return BadRequest(new { message = "A senha deve ter no minimo 8 caracteres." });
-        }
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, new { message = result.ErrorMessage });
 
-        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
-
-        if (await _context.Users.AnyAsync(u => u.Email == normalizedEmail))
-        {
-            return Conflict(new { message = "Este email ja esta cadastrado." });
-        }
-
-        var user = new User
-        {
-            FullName = request.FullName,
-            Email = normalizedEmail,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-            Balance = 1000.00m
-        };
-
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-
-        return Ok(new
-        {
-            message = "Conta criada com sucesso!",
-            userId = user.Id,
-            initialBalance = user.Balance
-        });
+        return StatusCode(result.StatusCode, result.Data);
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == normalizedEmail);
+        var result = await _authService.LoginAsync(request);
 
-        if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-        {
-            return Unauthorized(new { message = "Credenciais invalidas." });
-        }
+        if (!result.IsSuccess)
+            return StatusCode(result.StatusCode, new { message = result.ErrorMessage });
 
-        var token = _tokenService.GenerateToken(user);
-
-        return Ok(new
-        {
-            message = "Login realizado com sucesso!",
-            token,
-            expiresInMinutes = 30
-        });
+        return StatusCode(result.StatusCode, result.Data);
     }
 }
