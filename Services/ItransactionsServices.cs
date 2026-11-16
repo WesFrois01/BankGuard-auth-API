@@ -7,5 +7,5 @@ namespace BankGuard_Auth_API.Services;
 public interface ITransactionService
 {
     Task<ServiceResult<TransferResponse>> TransferAsync(Guid senderId, TransferRequest request);
-    Task<IEnumerable<AuditLog>> GetAuditLogsAsync();
+    Task<PagedResponse<AuditLog>> GetAuditLogsAsync(int page = 1, int pageSize = 10, string? status = null);
 }

@@ -1,6 +1,7 @@
 using BankGuard_Auth_API.DTOs;
 using BankGuard_Auth_API.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace BankGuard_Auth_API.Controllers;
 
@@ -27,6 +28,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting("login-policy")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         var result = await _authService.LoginAsync(request);

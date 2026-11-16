@@ -37,9 +37,12 @@ public class TransactionsController : ControllerBase
     }
 
     [HttpGet("audit")]
-    public async Task<IActionResult> GetAuditLogs()
+    public async Task<IActionResult> GetAuditLogs(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? status = null)
     {
-        var logs = await _transactionService.GetAuditLogsAsync();
-        return Ok(logs);
+        var result = await _transactionService.GetAuditLogsAsync(page, pageSize, status);
+        return Ok(result);
     }
 }

@@ -159,3 +159,13 @@
 /workspaces/BankGuard-auth-API/bin/Debug/net10.0/zh-Hant/Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll
 /workspaces/BankGuard-auth-API/bin/Debug/net10.0/BankGuard.Tests/obj/BankGuard.Tests.csproj.nuget.dgspec.json
 /workspaces/BankGuard-auth-API/bin/Debug/net10.0/BankGuard.Tests/obj/project.assets.json
+/workspaces/BankGuard-auth-API/bin/Debug/net10.0/BankGuard.Tests/bin/Debug/net10.0/appsettings.Development.json
+/workspaces/BankGuard-auth-API/bin/Debug/net10.0/BankGuard.Tests/bin/Debug/net10.0/appsettings.json
+/workspaces/BankGuard-auth-API/bin/Debug/net10.0/BankGuard.Tests/bin/Debug/net10.0/BankGuard-auth-API.deps.json
+/workspaces/BankGuard-auth-API/bin/Debug/net10.0/BankGuard.Tests/bin/Debug/net10.0/BankGuard-auth-API.runtimeconfig.json
+/workspaces/BankGuard-auth-API/bin/Debug/net10.0/BankGuard.Tests/bin/Debug/net10.0/BankGuard-auth-API.staticwebassets.endpoints.json
+/workspaces/BankGuard-auth-API/bin/Debug/net10.0/BankGuard.Tests/bin/Debug/net10.0/BankGuard.Tests.deps.json
+/workspaces/BankGuard-auth-API/bin/Debug/net10.0/BankGuard.Tests/bin/Debug/net10.0/BankGuard.Tests.runtimeconfig.json
+/workspaces/BankGuard-auth-API/bin/Debug/net10.0/BankGuard.Tests/bin/Debug/net10.0/BankGuard.Tests/obj/BankGuard.Tests.csproj.nuget.dgspec.json
+/workspaces/BankGuard-auth-API/bin/Debug/net10.0/BankGuard.Tests/bin/Debug/net10.0/BankGuard.Tests/obj/project.assets.json
+/workspaces/BankGuard-auth-API/bin/Debug/net10.0/BankGuard.Tests/obj/Debug/net10.0/BankGuard.Tests.sourcelink.json

@@ -98,10 +98,29 @@ public class TransactionService : ITransactionService
         }
     }
 
-    public async Task<IEnumerable<AuditLog>> GetAuditLogsAsync()
+ public async Task<PagedResponse<AuditLog>> GetAuditLogsAsync(int page = 1, int pageSize = 10, string? status = null)
     {
-        return await _context.AuditLogs
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 10;
+        if (pageSize > 50) pageSize = 50; // Proteção contra consultas gigantes
+
+        var query = _context.AuditLogs.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var normalizedStatus = status.Trim().ToUpperInvariant();
+            query = query.Where(l => l.Status == normalizedStatus);
+        }
+
+        var totalItems = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+        var items = await query
             .OrderByDescending(l => l.TimestampUtc)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
+
+        return new PagedResponse<AuditLog>(items, page, pageSize, totalItems, totalPages);
     }
 }

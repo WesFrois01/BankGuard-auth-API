@@ -1,8 +1,10 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using BankGuard_Auth_API.Data;
 using BankGuard_Auth_API.Middleware;
 using BankGuard_Auth_API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
@@ -20,6 +22,19 @@ builder.Services.AddScoped<ITransactionService, TransactionService>();
 // Tratamento Global de Exceções (RFC 7807 ProblemDetails)
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
+
+// Rate Limiting (Proteção contra Força Bruta no Login: máximo 5 tentativas por minuto)
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddFixedWindowLimiter("login-policy", opt =>
+    {
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.PermitLimit = 5;
+        opt.QueueLimit = 0;
+    });
+});
 
 // Banco de Dados
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -49,6 +64,7 @@ builder.Services.AddAuthorization();
 var app = builder.Build();
 
 app.UseExceptionHandler();
+app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
 {
